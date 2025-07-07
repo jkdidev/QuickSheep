@@ -1,7 +1,8 @@
 import asyncio
-from headlines import main as fetch_headlines
-from sentiment import main as analyse_sentiments
-from decision_making import interpret_results
+from protocols.fetching.headlines import main as fetch_headlines
+from protocols.analysis.sentiment import main as analyse_sentiments
+from protocols.analysis.decision_making import interpret_results
+from protocols.storing.dbmanager import *
 from constants import *
 
 """
@@ -21,18 +22,22 @@ like a sheep, but tries its best to be the quickest to the mark.
 """
 
 # Importance of ignore words: "Call centres could be a gold mine for Africa".
-# Certain keywords should be negative modifiers. E.g. - a positive article about BRICS should be considered as a negative USD article.
+# Certain keywords should be negative modifiers. Model is trained to adjust modifiers based on market performance of certain days vs that day's articles.
 
 DEBUG = False
 
 def main(debug: bool):
+    initialise_databases()
     print("Initialised.")
     results = fetch_headlines(debug, keywords) # = seed_data
 
     sentiments = asyncio.run(analyse_sentiments(results))
-    #print(sentiments)
+    print([data for data in sentiments])
 
-    asyncio.run(interpret_results(sentiments))
+    results = asyncio.run(interpret_results(sentiments))
+
+    new_titles = add_daily_articles(sentiments)
+    increment_keywords(new_titles)
 
 if __name__ == "__main__":
     main(DEBUG)
